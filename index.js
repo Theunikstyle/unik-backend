@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const app = express();
 const corsOptions = {
-  origin: 'huniknaturals-main-2-kydp-4aqwt9fkh.vercel.app',
+  origin: 'https://uniknaturals-main-2-kydp-4aqwt9fkh.vercel.app',
   credentials: true,
 };
 app.use(cors(corsOptions));
