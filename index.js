@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/uniknaturals', {
+mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://admin123:anuj12345@unik-cluster.xmizicj.mongodb.net/?retryWrites=true&w=majority&appName=unik-cluster', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
