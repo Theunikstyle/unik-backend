@@ -20,7 +20,7 @@ function auth(req, res, next) {
 // Create order
 router.post('/', auth, async (req, res) => {
   try {
-    const { products, total, address, paymentId } = req.body;
+    const { products, total, address, paymentId, phone } = req.body;
     const order = new Order({
       user: req.user.id,
       products,
@@ -28,7 +28,21 @@ router.post('/', auth, async (req, res) => {
       address,
       paymentId,
     });
+    // Validate address structure
+    if (!address || !address.pincode || !address.city || !address.state || !address.name || !address.address || !address.address2 || !address.addressType) {
+      return res.status(400).json({ error: 'All address fields are required: pincode, city, state, name, address, address2, addressType.' });
+    }
+    if (!['home', 'work'].includes(address.addressType)) {
+      return res.status(400).json({ error: 'addressType must be either "home" or "work".' });
+    }
     await order.save();
+    // Update user's phone and address if provided
+    const updateFields = {};
+    if (phone) updateFields.phone = phone;
+    if (address) updateFields.address = address;
+    if (Object.keys(updateFields).length > 0) {
+      await User.findByIdAndUpdate(req.user.id, { $set: updateFields });
+    }
     res.status(201).json(order);
   } catch (err) {
     res.status(400).json({ error: err.message });

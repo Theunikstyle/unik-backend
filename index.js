@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const app = express();
 const corsOptions = {
-  origin: 'https://uniknaturals-main-2-kydp.vercel.app',
+  origin: 'http://localhost:3000',
   credentials: true,
 };
 app.use(cors(corsOptions));
@@ -31,10 +31,16 @@ app.get('/', (req, res) => {
 const productsRouter = require('./routes/products');
 const authRouter = require('./routes/auth');
 const ordersRouter = require('./routes/orders');
+const usersRouter = require('./routes/users');
+const trendingProductsRouter = require('./routes/trending-products');
+const moreProductsRouter = require('./routes/more-products');
 
 app.use('/api/products', productsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/trending-products', trendingProductsRouter);
+app.use('/api/more-products', moreProductsRouter);
 
 const PORT = process.env.PORT || 5005;
 app.listen(PORT, () => {
