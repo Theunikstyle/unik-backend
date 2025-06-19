@@ -7,7 +7,7 @@ const app = express();
 const corsOptions = {
   origin: [
     'http://localhost:3000',
-    'https://uniknaturals-main-2-bnks.vercel.app/'
+    'https://uniknaturals-main-2-m9lp.vercel.app'
   ],
   credentials: true,
 };
