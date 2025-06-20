@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const fs = require('fs');
 
 const app = express();
 const corsOptions = {
@@ -26,6 +27,12 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 db.once('open', () => {
   console.log('Connected to MongoDB.');
 });
+
+// Ensure /public/uploads directory exists
+const uploadDir = __dirname + '/public/uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Placeholder route
 app.get('/', (req, res) => {
