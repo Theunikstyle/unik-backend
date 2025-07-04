@@ -46,6 +46,7 @@ const usersRouter = require('./routes/users');
 const trendingProductsRouter = require('./routes/trending-products');
 const moreProductsRouter = require('./routes/more-products');
 const uploadRouter = require('./routes/upload');
+const shiprocketRouter = require('./routes/shiprocket');
 
 app.use('/api/products', productsRouter);
 app.use('/api/auth', authRouter);
@@ -54,6 +55,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/trending-products', trendingProductsRouter);
 app.use('/api/more-products', moreProductsRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/shiprocket', shiprocketRouter);
 app.use('/uploads', express.static(__dirname + '/public/uploads'));
 
 const PORT = process.env.PORT || 5005;

@@ -21,6 +21,7 @@ const OrderSchema = new mongoose.Schema({
     addressType: { type: String, enum: ['home', 'work'], required: true },
   },
   paymentId: String,
+  shiprocketShipmentId: String, // Add this field to store Shiprocket shipment ID
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', OrderSchema);

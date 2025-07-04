@@ -20,13 +20,17 @@ function auth(req, res, next) {
 // Create order
 router.post('/', auth, async (req, res) => {
   try {
-    const { products, total, address, paymentId, phone } = req.body;
+    const { products, total, address, paymentId, phone, shiprocketShipmentId, shiprocketShipmentID } = req.body;
+    // Debug: log the incoming request body to verify field names and values
+    console.log('Order payload:', req.body);
+    const shipmentIdValue = shiprocketShipmentId || shiprocketShipmentID;
     const order = new Order({
       user: req.user.id,
       products,
       total,
       address,
       paymentId,
+      shiprocketShipmentId: shipmentIdValue ? String(shipmentIdValue) : undefined,
     });
     // Validate address structure
     if (!address || !address.pincode || !address.city || !address.state || !address.name || !address.address || !address.address2 || !address.addressType) {
@@ -36,6 +40,11 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'addressType must be either "home" or "work".' });
     }
     await order.save();
+    // If Shiprocket order creation was successful and you have a shipment_id, update the order
+    if (req.body.shiprocketShipmentId) {
+      order.shiprocketShipmentId = req.body.shiprocketShipmentId;
+      await order.save();
+    }
     // Update user's phone and address if provided
     const updateFields = {};
     if (phone) updateFields.phone = phone;
