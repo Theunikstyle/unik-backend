@@ -91,7 +91,7 @@ router.post('/', auth, async (req, res) => {
       const user = await User.findById(req.user.id);
       await sendOrderConfirmationEmail(user.email, order);
     } catch (emailErr) {
-      console.error('Order confirmation email failed:', emailErr.message);
+      console.error('Order confirmation email failed:', emailErr);
     }
     res.status(201).json(order);
   } catch (err) {
