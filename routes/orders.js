@@ -3,6 +3,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const router = express.Router();
 
 // Middleware to check auth
@@ -15,6 +16,38 @@ function auth(req, res, next) {
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
+}
+
+// Helper: send order confirmation email
+async function sendOrderConfirmationEmail(userEmail, order) {
+  // Configure your SMTP or use environment variables
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+  const productList = order.products.map(p => `- ${p.product} x${p.quantity} (₹${p.price})`).join('<br>');
+  const mailOptions = {
+    from: process.env.SMTP_FROM || 'no-reply@uniknaturals.com',
+    to: userEmail,
+    subject: `Order Confirmation - ${order._id}`,
+    html: `<h2>Thank you for your order!</h2>
+      <p><b>Order ID:</b> ${order._id}</p>
+      <p><b>Total:</b> ₹${order.total}</p>
+      <p><b>Shipping Address:</b><br>
+        ${order.address.name},<br>
+        ${order.address.address},<br>
+        ${order.address.address2},<br>
+        ${order.address.city}, ${order.address.state} - ${order.address.pincode}
+      </p>
+      <p><b>Products:</b><br>${productList}</p>
+      <p>We will notify you when your order is shipped.</p>`
+  };
+  await transporter.sendMail(mailOptions);
 }
 
 // Create order
@@ -52,6 +85,13 @@ router.post('/', auth, async (req, res) => {
     if (address) updateFields.address = address;
     if (Object.keys(updateFields).length > 0) {
       await User.findByIdAndUpdate(req.user.id, { $set: updateFields });
+    }
+    // Send order confirmation email
+    try {
+      const user = await User.findById(req.user.id);
+      await sendOrderConfirmationEmail(user.email, order);
+    } catch (emailErr) {
+      console.error('Order confirmation email failed:', emailErr.message);
     }
     res.status(201).json(order);
   } catch (err) {
