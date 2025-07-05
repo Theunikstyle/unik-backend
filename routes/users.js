@@ -19,6 +19,29 @@ router.get('/me', auth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Update logged-in user's profile
+router.put('/me', auth, async (req, res) => {
+  try {
+    const { phone, address } = req.body;
+    const updateFields = {};
+    if (phone !== undefined) updateFields.phone = phone;
+    if (address !== undefined) updateFields.address = address;
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateFields },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      email: user.email,
+      phone: user.phone,
+      address: user.address,
+      wishlist: user.wishlist,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Add product to wishlist
 router.post('/wishlist', auth, async (req, res) => {
