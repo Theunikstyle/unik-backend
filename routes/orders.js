@@ -20,7 +20,7 @@ function auth(req, res, next) {
 // Create order
 router.post('/', auth, async (req, res) => {
   try {
-    const { products, total, address, paymentId, phone, shiprocketShipmentId, shiprocketShipmentID } = req.body;
+    const { products, total, address, paymentId, phone, paymentMethod, shiprocketShipmentId, shiprocketShipmentID } = req.body;
     // Debug: log the incoming request body to verify field names and values
     console.log('Order payload:', req.body);
     const shipmentIdValue = shiprocketShipmentId || shiprocketShipmentID;
@@ -30,6 +30,7 @@ router.post('/', auth, async (req, res) => {
       total,
       address,
       paymentId,
+      paymentMethod, // Save payment method (Prepaid or COD)
       shiprocketShipmentId: shipmentIdValue ? String(shipmentIdValue) : undefined,
     });
     // Validate address structure

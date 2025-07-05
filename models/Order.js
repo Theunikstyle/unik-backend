@@ -22,6 +22,7 @@ const OrderSchema = new mongoose.Schema({
   },
   paymentId: String,
   shiprocketShipmentId: String, // Add this field to store Shiprocket shipment ID
+  paymentMethod: { type: String, enum: ['Prepaid', 'COD'], required: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', OrderSchema);

@@ -8,6 +8,12 @@ const SHIPROCKET_TOKEN = process.env.SHIPROCKET_TOKEN;
 router.post('/', async (req, res) => {
   try {
     const orderData = req.body;
+    // Ensure payment_method is set correctly for Shiprocket
+    if (orderData.paymentMethod && orderData.paymentMethod.toUpperCase() === 'COD') {
+      orderData.payment_method = 'COD';
+    } else {
+      orderData.payment_method = 'Prepaid';
+    }
     const response = await axios.post(
       'https://apiv2.shiprocket.in/v1/external/orders/create/adhoc',
       orderData,
