@@ -9,7 +9,8 @@ const corsOptions = {
   origin: [
     'http://localhost:3000',
     'https://uniknaturals-main-2-m9lp-1cliqmar1.vercel.app',
-    'https://www.uniknaturals.com'
+    'https://www.uniknaturals.com',
+    'https://uniknaturals.com'
   ],
   credentials: true,
 };
