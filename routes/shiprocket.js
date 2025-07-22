@@ -2,41 +2,45 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-let shiprocketToken = process.env.SHIPROCKET_TOKEN;
+let cachedToken = null; // memory cache
+
 const email = process.env.SHIPROCKET_EMAIL;
 const password = process.env.SHIPROCKET_PASSWORD;
 
-// Helper: Login & get token
+console.log('💡 Shiprocket email:', email);
+
+// FUNCTION: Get new token and cache it
 const getNewShiprocketToken = async () => {
   try {
     const res = await axios.post('https://apiv2.shiprocket.in/v1/external/auth/login', {
       email,
       password
     });
-    shiprocketToken = res.data.token; // Save new token in memory
-    console.log('✅ New Shiprocket Token:', shiprocketToken);
-    return shiprocketToken;
+
+    cachedToken = res.data.token;
+    console.log('✅ Shiprocket token refreshed:', cachedToken);
+    return cachedToken;
   } catch (err) {
-    console.error('❌ Error getting new token:', err.response?.data || err.message);
-    throw new Error('Failed to authenticate with Shiprocket');
+    console.error('❌ Failed to refresh Shiprocket token:', err.response?.data || err.message);
+    throw new Error('Failed to refresh token');
   }
 };
 
-// Route: Create Shiprocket Order
+// ROUTE: Place Order
 router.post('/', async (req, res) => {
-  let token = shiprocketToken;
+  let token = cachedToken || process.env.SHIPROCKET_TOKEN;
+  let triedRefresh = false;
 
-  // Retry logic: Try request once, refresh token if 401, then try again
-  for (let i = 0; i < 2; i++) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const orderPayload = {
+      const orderData = {
         ...req.body,
-        payment_method: req.body.paymentMethod === 'COD' ? 'COD' : 'Prepaid'
+        payment_method: req.body.paymentMethod?.toUpperCase() === 'COD' ? 'COD' : 'Prepaid'
       };
 
       const response = await axios.post(
         'https://apiv2.shiprocket.in/v1/external/orders/create/adhoc',
-        orderPayload,
+        orderData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -45,22 +49,24 @@ router.post('/', async (req, res) => {
         }
       );
 
+      console.log(`✅ Shiprocket order created (Attempt ${attempt})`);
       return res.status(response.status).json(response.data);
     } catch (err) {
-      // Token expired? Try refreshing once
-      if (err.response?.status === 401 && i === 0) {
-        console.log('🔁 Token expired. Refreshing...');
+      if (err.response?.status === 401 && !triedRefresh) {
+        console.warn('⚠️ Token expired. Refreshing...');
         try {
           token = await getNewShiprocketToken();
-        } catch (refreshError) {
-          return res.status(401).json({ error: 'Shiprocket token refresh failed' });
+          triedRefresh = true;
+          continue; // retry after refresh
+        } catch (refreshErr) {
+          return res.status(401).json({ error: 'Token refresh failed' });
         }
-      } else {
-        console.error('❌ Shiprocket error:', err.response?.data || err.message);
-        return res.status(err.response?.status || 500).json({
-          error: err.response?.data || err.message
-        });
       }
+
+      // Any other error
+      return res.status(err.response?.status || 500).json({
+        error: err.response?.data || err.message
+      });
     }
   }
 });
