@@ -33,5 +33,10 @@
 
 ---
 
+**Note:**
+If your environment variable value contains special characters (like #), wrap the value in double quotes in your `.env` file. For example:
+
+This prevents the # from being interpreted as a comment.
+
 You can now connect your Next.js frontend to this backend for all product, user, and order operations.
 # theuniknatural3
