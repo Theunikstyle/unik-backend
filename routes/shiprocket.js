@@ -2,86 +2,66 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-const SHIPROCKET_EMAIL = process.env.SHIPROCKET_EMAIL;
-const SHIPROCKET_PASSWORD = process.env.SHIPROCKET_PASSWORD;
+let shiprocketToken = process.env.SHIPROCKET_TOKEN;
+const email = process.env.SHIPROCKET_EMAIL;
+const password = process.env.SHIPROCKET_PASSWORD;
 
-let currentToken = process.env.SHIPROCKET_TOKEN || null; // Use initial token if available
-
-// Helper: Get new token from Shiprocket API
-async function getNewShiprocketToken() {
+// Helper: Login & get token
+const getNewShiprocketToken = async () => {
   try {
-    console.log('🔄 Fetching new Shiprocket token...');
-    const response = await axios.post('https://apiv2.shiprocket.in/v1/external/auth/login', {
-      email: SHIPROCKET_EMAIL,
-      password: SHIPROCKET_PASSWORD
-    }, {
-      headers: { 'Content-Type': 'application/json' }
+    const res = await axios.post('https://apiv2.shiprocket.in/v1/external/auth/login', {
+      email,
+      password
     });
-
-    const token = response.data.token;
-    console.log('✅ New Shiprocket token received.');
-    currentToken = token; // Save token for future use
-    return token;
+    shiprocketToken = res.data.token; // Save new token in memory
+    console.log('✅ New Shiprocket Token:', shiprocketToken);
+    return shiprocketToken;
   } catch (err) {
-    console.error('❌ Error fetching Shiprocket token:', err.response?.data || err.message);
-    throw new Error('Failed to get Shiprocket token');
+    console.error('❌ Error getting new token:', err.response?.data || err.message);
+    throw new Error('Failed to authenticate with Shiprocket');
   }
-}
+};
 
-// Shiprocket Order Creation Route
+// Route: Create Shiprocket Order
 router.post('/', async (req, res) => {
-  let token = currentToken;
-  let triedRefresh = false;
-  let lastError;
+  let token = shiprocketToken;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Retry logic: Try request once, refresh token if 401, then try again
+  for (let i = 0; i < 2; i++) {
     try {
-      const orderData = { ...req.body };
+      const orderPayload = {
+        ...req.body,
+        payment_method: req.body.paymentMethod === 'COD' ? 'COD' : 'Prepaid'
+      };
 
-      // Ensure payment method format is correct
-      orderData.payment_method = (orderData.paymentMethod && orderData.paymentMethod.toUpperCase() === 'COD')
-        ? 'COD'
-        : 'Prepaid';
-
-      // Send request to Shiprocket
       const response = await axios.post(
         'https://apiv2.shiprocket.in/v1/external/orders/create/adhoc',
-        orderData,
+        orderPayload,
         {
           headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         }
       );
 
-      console.log(`✅ Order created (Attempt ${attempt + 1})`);
       return res.status(response.status).json(response.data);
-
     } catch (err) {
-      lastError = err;
-
-      if (err.response?.status === 401 && !triedRefresh) {
-        console.warn('⚠️ Token expired. Refreshing...');
+      // Token expired? Try refreshing once
+      if (err.response?.status === 401 && i === 0) {
+        console.log('🔁 Token expired. Refreshing...');
         try {
           token = await getNewShiprocketToken();
-          triedRefresh = true;
-          continue; // Retry with new token
-        } catch (refreshErr) {
-          return res.status(401).json({ error: 'Token refresh failed' });
+        } catch (refreshError) {
+          return res.status(401).json({ error: 'Shiprocket token refresh failed' });
         }
+      } else {
+        console.error('❌ Shiprocket error:', err.response?.data || err.message);
+        return res.status(err.response?.status || 500).json({
+          error: err.response?.data || err.message
+        });
       }
-
-      // Other errors
-      console.error('❌ Shiprocket order creation failed:', err.response?.data || err.message);
-      return res.status(err.response?.status || 500).json({
-        error: err.response?.data || err.message || 'Unknown error'
-      });
     }
   }
-
-  // All attempts failed
-  return res.status(500).json({ error: lastError?.message || 'Shiprocket order failed' });
 });
-
 module.exports = router;
